@@ -62,19 +62,50 @@ func ParseUrl(inputURL string, defaultPort uint16) (*UrlSchema, error) {
 	}
 
 	for key, values := range parsedURL.Query() {
-		data.Params[normalizeStr(key)] = strings.Join(values, ",")
+		data.Params[canonicalParamKey(key)] = strings.Join(values, ",")
 	}
 
 	return data, nil
 }
 
-func normalizeStr(ss string) string {
+// canonicalParamKey is the single normalization contract every protocol
+// parser's parameter lookups must agree with. A link author may spell a
+// query key with hyphens, underscores, spaces, or mixed case
+// (obfs-password, obfs_password, obfsPassword, OBFS-PASSWORD); all of these
+// must resolve to the same stored key. Earlier revisions replaced '_'/'-'
+// with a literal space, which does not round-trip through a plain map
+// index (decoded["obfs-password"] never matches a key stored as
+// "obfs password") and gave every protocol file its own ad-hoc,
+// undocumented assumption about the result. Stripping separators instead
+// of substituting them removes that ambiguity: "obfs-password",
+// "obfs_password" and "obfsPassword" all canonicalize to "obfspassword",
+// matching the no-separator alias spellings most parsers already use.
+//
+// ParseUrl runs every query key through this before storing it in
+// UrlSchema.Params. Any code reading UrlSchema.Params must do the same
+// canonicalization on the key it looks up - use getParam/getOneOf/getOneOfN
+// rather than indexing Params directly with a literal that assumes a
+// particular separator style.
+func canonicalParamKey(ss string) string {
 	s := strings.ToLower(strings.TrimSpace(ss))
-	for _, r := range []string{"_", "-"} {
-		s = strings.ReplaceAll(s, r, " ")
-
+	var b strings.Builder
+	b.Grow(len(s))
+	for _, r := range s {
+		switch r {
+		case '_', '-', ' ', '\t':
+			continue
+		default:
+			b.WriteRune(r)
+		}
 	}
-	return s
+	return b.String()
+}
+
+// normalizeStr is kept as the historical name for canonicalParamKey: it is
+// still the function ParseUrl and getOneOfN both call, so every caller of
+// either keeps normalizing keys through exactly one place.
+func normalizeStr(ss string) string {
+	return canonicalParamKey(ss)
 }
 
 func getPassword(u *url.URL) string {

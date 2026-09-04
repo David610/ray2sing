@@ -41,7 +41,7 @@ func HysteriaSingbox(hysteriaURL string) (*T.Outbound, error) {
 		opts.DownMbps = downMbps
 	}
 
-	opts.Obfs = u.Params["obfsParam"]
+	opts.Obfs = getParam(u.Params, "obfsParam")
 	// opts.TurnRelay, err = u.GetRelayOptions()
 	if err != nil {
 		return nil, err
