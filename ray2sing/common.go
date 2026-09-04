@@ -526,3 +526,14 @@ func getOneOfN(dic map[string]string, defaultval string, headers ...string) stri
 	}
 	return defaultval
 }
+
+// getParam is the canonical single-alias parameter accessor: it applies the
+// exact same key canonicalization ParseUrl used to build dic, so a caller
+// can write the parameter's natural/documented name (obfs-password,
+// congestion_control, ...) instead of a literal that happens to already
+// match whatever normalizeStr produces today. Every protocol parser should
+// read query parameters through this (or getOneOf/getOneOfN for real
+// aliases) rather than indexing dic directly.
+func getParam(dic map[string]string, key string) string {
+	return dic[canonicalParamKey(key)]
+}

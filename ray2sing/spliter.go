@@ -18,9 +18,6 @@ func buildRegex() *regexp.Regexp {
 	for k := range endpointParsers {
 		prefixSet[k] = struct{}{}
 	}
-	for k := range xrayConfigTypes {
-		prefixSet[k] = struct{}{}
-	}
 
 	var prefixes []string
 	for k := range prefixSet {
